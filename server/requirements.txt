@@ -1,0 +1,9 @@
+fastapi
+uvicorn[standard]
+easyocr
+opencv-python-headless
+python-multipart
+jinja2
+aiofiles
+bcrypt
+itsdangerous

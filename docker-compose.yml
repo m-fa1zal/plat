@@ -1,0 +1,13 @@
+services:
+  server:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./server:/app          # live reload — code changes apply without rebuild
+      - plat_data:/app/data    # SQLite database persists across restarts
+    environment:
+      - DATABASE_PATH=/app/data/cars.db
+
+volumes:
+  plat_data:

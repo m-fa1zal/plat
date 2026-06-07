@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PLAT — Car Registry</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #f0f2f5;
+      color: #1a1a2e;
+      min-height: 100vh;
+    }
+
+    header {
+      background: #1a1a2e;
+      color: white;
+      padding: 20px 40px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    header .logo {
+      background: #e94560;
+      color: white;
+      font-weight: 700;
+      font-size: 18px;
+      padding: 6px 14px;
+      border-radius: 6px;
+      letter-spacing: 2px;
+    }
+    header h1 { font-size: 20px; font-weight: 600; }
+    header .header-right {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    header .user-info { font-size: 13px; color: #a0aec0; }
+    header .user-info strong { color: white; }
+    .btn-logout {
+      background: none;
+      border: 1.5px solid rgba(255,255,255,0.25);
+      color: #a0aec0;
+      padding: 6px 16px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      transition: all 0.2s;
+    }
+    .btn-logout:hover { border-color: #e94560; color: #e94560; }
+
+    .container { max-width: 1100px; margin: 40px auto; padding: 0 20px; }
+
+    .stats {
+      background: white;
+      border-radius: 10px;
+      padding: 20px 28px;
+      margin-bottom: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    }
+    .stats-left { display: flex; align-items: center; gap: 8px; }
+    .stats .count { font-size: 32px; font-weight: 700; color: #e94560; }
+    .stats .label { font-size: 14px; color: #718096; }
+
+    .card {
+      background: white;
+      border-radius: 10px;
+      padding: 24px 28px;
+      margin-bottom: 24px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    }
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+    .card-header h2 {
+      font-size: 15px;
+      font-weight: 600;
+      color: #2d3748;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .btn-add {
+      background: #e94560;
+      color: white;
+      border: none;
+      padding: 10px 22px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .btn-add:hover { background: #c73652; }
+
+    /* Table */
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; min-width: 750px; }
+    thead tr { background: #f7fafc; border-bottom: 2px solid #e2e8f0; }
+    thead th {
+      text-align: left;
+      padding: 11px 14px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #718096;
+      white-space: nowrap;
+    }
+    tbody tr { border-bottom: 1px solid #f0f2f5; transition: background 0.15s; }
+    tbody tr:hover { background: #f7fafc; }
+    tbody tr:last-child { border-bottom: none; }
+    tbody td { padding: 12px 14px; font-size: 14px; vertical-align: middle; }
+
+    .plate-badge {
+      background: #1a1a2e;
+      color: white;
+      font-weight: 700;
+      font-size: 14px;
+      letter-spacing: 2px;
+      padding: 3px 10px;
+      border-radius: 5px;
+      display: inline-block;
+    }
+    .muted { color: #718096; font-size: 13px; }
+
+    .action-btns { display: flex; gap: 8px; }
+
+    .btn-edit {
+      background: none;
+      border: 1.5px solid #e2e8f0;
+      color: #3182ce;
+      padding: 4px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+    .btn-edit:hover { background: #3182ce; color: white; border-color: #3182ce; }
+
+    .btn-delete {
+      background: none;
+      border: 1.5px solid #e2e8f0;
+      color: #e94560;
+      padding: 4px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+    .btn-delete:hover { background: #e94560; color: white; border-color: #e94560; }
+
+    .empty { text-align: center; padding: 48px 16px; color: #a0aec0; font-size: 14px; }
+
+    /* ── Modal ─────────────────────────────────────────────── */
+    .overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.45);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+    }
+    .overlay.open { display: flex; }
+
+    .modal {
+      background: white;
+      border-radius: 12px;
+      padding: 32px;
+      width: 100%;
+      max-width: 520px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+      animation: slideUp 0.2s ease;
+    }
+    @keyframes slideUp {
+      from { transform: translateY(20px); opacity: 0; }
+      to   { transform: translateY(0);    opacity: 1; }
+    }
+
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 24px;
+    }
+    .modal-header h2 {
+      font-size: 18px;
+      font-weight: 700;
+      color: #1a1a2e;
+    }
+    .btn-close {
+      background: none;
+      border: none;
+      font-size: 22px;
+      color: #a0aec0;
+      cursor: pointer;
+      line-height: 1;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+    .btn-close:hover { background: #f0f2f5; color: #1a1a2e; }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    .form-group { display: flex; flex-direction: column; gap: 6px; }
+    .form-group.full { grid-column: 1 / -1; }
+
+    .form-group label {
+      font-size: 12px;
+      font-weight: 600;
+      color: #4a5568;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+    }
+    .form-group input, .form-group select {
+      padding: 9px 12px;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 7px;
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.2s;
+      background: white;
+    }
+    .form-group input:focus, .form-group select:focus { border-color: #e94560; }
+    .form-group input.plate-input {
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      font-weight: 700;
+    }
+
+    .modal-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+      margin-top: 24px;
+    }
+    .btn-cancel {
+      background: none;
+      border: 1.5px solid #e2e8f0;
+      color: #4a5568;
+      padding: 10px 22px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .btn-cancel:hover { background: #f7fafc; }
+    .btn-submit {
+      background: #e94560;
+      color: white;
+      border: none;
+      padding: 10px 28px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .btn-submit:hover { background: #c73652; }
+
+    footer { text-align: center; padding: 32px; font-size: 12px; color: #a0aec0; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="logo">PLAT</div>
+    <h1>Car Registry Dashboard</h1>
+    <div class="header-right">
+      <span class="user-info">Logged in as <strong>{{ first_name or username }}</strong></span>
+      <a href="/logout" class="btn-logout">Logout</a>
+    </div>
+  </header>
+
+  <div class="container">
+
+    <!-- Stats -->
+    <div class="stats">
+      <div class="stats-left">
+        <div class="count">{{ cars | length }}</div>
+        <div class="label">Registered {{ 'Car' if cars | length == 1 else 'Cars' }}</div>
+      </div>
+    </div>
+
+    <!-- Car List -->
+    <div class="card">
+      <div class="card-header">
+        <h2>Registered Cars</h2>
+        <button class="btn-add" onclick="openModal()">+ Add Car</button>
+      </div>
+
+      {% if cars %}
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Plate</th>
+              <th>Matrix</th>
+              <th>Name</th>
+              <th>Vehicle</th>
+              <th>Colour</th>
+              <th>Date Added</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for car in cars %}
+            <tr>
+              <td class="muted">{{ loop.index }}</td>
+              <td><span class="plate-badge">{{ car.plate }}</span></td>
+              <td class="muted">{{ car.matrix or '—' }}</td>
+              <td>{{ car.first_name }} {{ car.last_name }}</td>
+              <td class="muted">{{ car.manufacturer }} {{ car.model }}</td>
+              <td class="muted">{{ car.colour or '—' }}</td>
+              <td class="muted">{{ car.created_at }}</td>
+              <td>
+                <div class="action-btns">
+                  <button class="btn-edit"
+                    onclick="openEditModal({
+                      plate:        '{{ car.plate }}',
+                      matrix:       '{{ car.matrix }}',
+                      first_name:   '{{ car.first_name }}',
+                      last_name:    '{{ car.last_name }}',
+                      manufacturer: '{{ car.manufacturer }}',
+                      model:        '{{ car.model }}',
+                      colour:       '{{ car.colour }}'
+                    })">Edit</button>
+                  <form action="/cars/delete/{{ car.plate }}" method="post"
+                        onsubmit="return confirm('Remove {{ car.plate }}?')">
+                    <button type="submit" class="btn-delete">Remove</button>
+                  </form>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="empty">
+        No cars registered yet. Click <strong>+ Add Car</strong> to register one.
+      </div>
+      {% endif %}
+    </div>
+
+  </div>
+
+  <!-- Add Car Modal -->
+  <div class="overlay" id="overlay" onclick="closeOnOverlay(event)">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>Register New Car</h2>
+        <button class="btn-close" onclick="closeModal()">&#x2715;</button>
+      </div>
+
+      <form action="/cars/add" method="post">
+        <div class="form-grid">
+
+          <div class="form-group">
+            <label>Matrix No.</label>
+            <input type="text" name="matrix" placeholder="e.g. AT220123" />
+          </div>
+
+          <div class="form-group">
+            <label>Plate Number *</label>
+            <input type="text" name="plate" class="plate-input"
+                   placeholder="e.g. ABC1234" maxlength="8" required autocomplete="off" />
+          </div>
+
+          <div class="form-group">
+            <label>First Name</label>
+            <input type="text" name="first_name" placeholder="First name" />
+          </div>
+
+          <div class="form-group">
+            <label>Last Name</label>
+            <input type="text" name="last_name" placeholder="Last name" />
+          </div>
+
+          <div class="form-group">
+            <label>Car Manufacturer</label>
+            <input type="text" name="manufacturer" placeholder="e.g. Proton, Perodua" />
+          </div>
+
+          <div class="form-group">
+            <label>Car Model</label>
+            <input type="text" name="model" placeholder="e.g. Saga, Myvi" />
+          </div>
+
+          <div class="form-group full">
+            <label>Colour</label>
+            <input type="text" name="colour" placeholder="e.g. White, Black, Silver" />
+          </div>
+
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn-cancel" onclick="closeModal()">Cancel</button>
+          <button type="submit" class="btn-submit">Register Car</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Edit Car Modal -->
+  <div class="overlay" id="editOverlay" onclick="closeOnEditOverlay(event)">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>Edit Car Information</h2>
+        <button class="btn-close" onclick="closeEditModal()">&#x2715;</button>
+      </div>
+
+      <form id="editForm" method="post">
+        <div class="form-grid">
+
+          <div class="form-group">
+            <label>Matrix No.</label>
+            <input type="text" name="matrix" id="edit_matrix" placeholder="e.g. AT220123" />
+          </div>
+
+          <div class="form-group">
+            <label>Plate Number *</label>
+            <input type="text" name="plate" id="edit_plate" class="plate-input"
+                   placeholder="e.g. ABC1234" maxlength="8" required autocomplete="off" />
+          </div>
+
+          <div class="form-group">
+            <label>First Name</label>
+            <input type="text" name="first_name" id="edit_first_name" placeholder="First name" />
+          </div>
+
+          <div class="form-group">
+            <label>Last Name</label>
+            <input type="text" name="last_name" id="edit_last_name" placeholder="Last name" />
+          </div>
+
+          <div class="form-group">
+            <label>Car Manufacturer</label>
+            <input type="text" name="manufacturer" id="edit_manufacturer" placeholder="e.g. Proton, Perodua" />
+          </div>
+
+          <div class="form-group">
+            <label>Car Model</label>
+            <input type="text" name="model" id="edit_model" placeholder="e.g. Saga, Myvi" />
+          </div>
+
+          <div class="form-group full">
+            <label>Colour</label>
+            <input type="text" name="colour" id="edit_colour" placeholder="e.g. White, Black, Silver" />
+          </div>
+
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn-cancel" onclick="closeEditModal()">Cancel</button>
+          <button type="submit" class="btn-submit">Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <footer>PLAT Smart Parking System &mdash; Diploma Project</footer>
+
+  <script>
+    // ── Add Modal ─────────────────────────────────────────────
+    function openModal() {
+      document.getElementById('overlay').classList.add('open');
+    }
+    function closeModal() {
+      document.getElementById('overlay').classList.remove('open');
+    }
+    function closeOnOverlay(e) {
+      if (e.target === document.getElementById('overlay')) closeModal();
+    }
+
+    // ── Edit Modal ────────────────────────────────────────────
+    function openEditModal(car) {
+      document.getElementById('edit_matrix').value       = car.matrix;
+      document.getElementById('edit_plate').value        = car.plate;
+      document.getElementById('edit_first_name').value   = car.first_name;
+      document.getElementById('edit_last_name').value    = car.last_name;
+      document.getElementById('edit_manufacturer').value = car.manufacturer;
+      document.getElementById('edit_model').value        = car.model;
+      document.getElementById('edit_colour').value       = car.colour;
+
+      // Set form action to the original plate
+      document.getElementById('editForm').action = '/cars/edit/' + car.plate;
+
+      document.getElementById('editOverlay').classList.add('open');
+    }
+    function closeEditModal() {
+      document.getElementById('editOverlay').classList.remove('open');
+    }
+    function closeOnEditOverlay(e) {
+      if (e.target === document.getElementById('editOverlay')) closeEditModal();
+    }
+
+    // Close either modal on Escape
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') { closeModal(); closeEditModal(); }
+    });
+  </script>
+
+</body>
+</html>
