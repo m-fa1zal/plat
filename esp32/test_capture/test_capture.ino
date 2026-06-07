@@ -14,9 +14,10 @@
 #include "esp_camera.h"
 
 // ── Configuration — update before uploading ───────────────────
-const char* WIFI_SSID     = "payazal-2.4G";
-const char* WIFI_PASSWORD = "P@y@z@l83";
-const char* SERVER_URL    = "http://192.168.0.2:8000/recognize"; // laptop IP
+const char* WIFI_SSID     = "ssid";
+const char* WIFI_PASSWORD = "password";
+const char* SERVER_URL    = "http://192.168.0.5:8000/recognize"; // laptop IP
+const char* DEVBOARD_IP   = "192.168.0.6";                      // ESP32 Dev Board IP
 
 #define TEST_INTERVAL_MS  10000   // ms between each capture+send cycle
 // ──────────────────────────────────────────────────────────────
@@ -125,6 +126,10 @@ bool initCamera() {
   cfg.fb_count     = 1;
 
   if (esp_camera_init(&cfg) != ESP_OK) return false;
+
+  sensor_t* s = esp_camera_sensor_get();
+  if (s) s->set_hmirror(s, 1);  // correct hardware mirror on XIAO ESP32-S3 Sense
+
   Serial.println("[TEST] Camera ready");
   return true;
 }
@@ -170,8 +175,22 @@ void sendAndPrint(camera_fb_t* fb) {
   } else {
     Serial.println("[TEST] Plate    : " + plate);
     Serial.println("[TEST] Verified : " + String(verified ? "YES — entry allowed" : "NO  — entry denied"));
+    String body = "plate=" + plate + "&verified=" + (verified ? "1" : "0");
+    postToDevBoard("/entry", body);
   }
   Serial.println("-----------------------------\n");
+}
+
+// ── Post to Dev Board ─────────────────────────────────────────
+void postToDevBoard(String path, String body) {
+  String url = "http://" + String(DEVBOARD_IP) + path;
+  HTTPClient http;
+  http.begin(url);
+  http.addHeader("Content-Type", "application/x-www-form-urlencoded");
+  http.setTimeout(5000);
+  int code = http.POST(body);
+  http.end();
+  Serial.printf("[TEST] Dev Board %s → HTTP %d\n", path.c_str(), code);
 }
 
 // ── JSON helper ───────────────────────────────────────────────

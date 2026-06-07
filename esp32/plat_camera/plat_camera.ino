@@ -131,6 +131,10 @@ bool initCamera() {
     Serial.println("[CAM] Camera error");
     return false;
   }
+
+  sensor_t* s = esp_camera_sensor_get();
+  if (s) s->set_hmirror(s, 1);  // correct hardware mirror on XIAO ESP32-S3 Sense
+
   Serial.println("[CAM] Camera ready");
   return true;
 }

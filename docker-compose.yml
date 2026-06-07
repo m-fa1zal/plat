@@ -6,6 +6,7 @@ services:
     volumes:
       - ./server:/app          # live reload — code changes apply without rebuild
       - plat_data:/app/data    # SQLite database persists across restarts
+      - ./captures:/app/captures  # saved images — inspect what the camera sends
     environment:
       - DATABASE_PATH=/app/data/cars.db
 

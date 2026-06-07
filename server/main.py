@@ -1,6 +1,8 @@
 import os
 import re
 from contextlib import asynccontextmanager
+from datetime import datetime
+from pathlib import Path
 
 import cv2
 import easyocr
@@ -11,6 +13,9 @@ from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
 
 import database
+
+CAPTURES_DIR = Path("/app/captures")
+CAPTURES_DIR.mkdir(exist_ok=True)
 
 reader = None
 
@@ -144,32 +149,50 @@ async def delete_car(request: Request, plate: str):
 
 # ── Plate recognition (ESP32 — no auth needed) ────────────────
 
-@app.post("/recognize")
-async def recognize(request: Request):
-    contents = await request.body()
-    np_arr = np.frombuffer(contents, np.uint8)
-    frame  = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
+def _save_captures(ts: str, raw_bytes: bytes, gray: np.ndarray, thresh: np.ndarray):
+    (CAPTURES_DIR / f"{ts}.jpg").write_bytes(raw_bytes)
 
-    if frame is None:
-        return {"plate": None, "verified": False}
 
-    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-    _, thresh = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-
-    results = reader.readtext(thresh)
-
-    plate = None
+def _extract_plate(results) -> tuple[str | None, float]:
+    """Return the first result matching plate format and its confidence."""
     for (_, text, confidence) in results:
         cleaned = re.sub(r"[^A-Z0-9]", "", text.upper())
         if (2 <= len(cleaned) <= 8
                 and re.search(r"[A-Z]", cleaned)
                 and re.search(r"[0-9]", cleaned)
-                and confidence > 0.5):
-            plate = cleaned
-            break
+                and confidence > 0.3):
+            return cleaned, confidence
+    return None, 0.0
+
+
+@app.post("/recognize")
+async def recognize(request: Request):
+    contents = await request.body()
+    ts = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
+
+    np_arr = np.frombuffer(contents, np.uint8)
+    frame  = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
+
+    if frame is None:
+        print(f"[{ts}] decode failed — empty or corrupt JPEG ({len(contents)} bytes)")
+        return {"plate": None, "verified": False}
+
+    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    _, thresh = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+    _save_captures(ts, contents, gray, thresh)
+    print(f"[{ts}] captured {len(contents)} bytes  frame={frame.shape}")
+
+    # Try grayscale first — EasyOCR is trained on natural images, usually better
+    plate, conf = _extract_plate(reader.readtext(gray, detail=1))
+
+    # Fall back to Otsu threshold if grayscale found nothing
+    if not plate:
+        plate, conf = _extract_plate(reader.readtext(thresh, detail=1))
 
     if not plate:
+        print(f"[{ts}] no plate detected")
         return {"plate": None, "verified": False}
 
     verified = database.is_verified(plate)
+    print(f"[{ts}] plate={plate}  conf={conf:.2f}  verified={verified}")
     return {"plate": plate, "verified": verified}
